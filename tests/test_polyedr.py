@@ -36,3 +36,31 @@ class TestPolyedr(unittest.TestCase):
 
     def test_num_edges(self):
         self.assertEqual(len(self.polyedr.edges), 16)
+
+class TestPolyedgVisibility(unittest.TestCase):
+
+    def setUp(self):
+        self.polyedr = Polyedr.__new__(Polyedr)
+        self.polyedr.facets = []
+        self.polyedr.facet_visibility = Mock()
+
+    def test_empty_facets_list(self):
+        self.assertFalse(self.polyedr.polyedg_visibility())
+
+    # Все грани видимы
+    def test_all_facets_visible(self):
+        self.polyedr.facets = [Mock() for _ in range(3)]
+        self.polyedr.facet_visibility.return_value = True
+        self.assertTrue(self.polyedr.polyedg_visibility())
+
+    # Хотя бы одна грань видима
+    def test_at_least_one_visible(self):
+        self.polyedr.facets = [Mock() for _ in range(4)]
+        self.polyedr.facet_visibility.side_effect = [False, False, True, False]
+        self.assertTrue(self.polyedr.polyedg_visibility())
+
+    # Ни одна грань не видима
+    def test_none_visible(self):
+        self.polyedr.facets = [Mock() for _ in range(2)]
+        self.polyedr.facet_visibility.return_value = False
+        self.assertFalse(self.polyedr.polyedg_visibility())

@@ -103,3 +103,27 @@ class TestEdge:
                    R3(2.0, 2.0, 0.0), R3(0.0, 2.0, 0.0)])
         s.shadow(f)
         assert len(s.gaps) == 2
+
+    # Ребро полностью видимо
+    def test_edge_visibility_01(self):
+        s = Edge(R3(0.0, 0.0, 1.0), R3(1.0, 1.0, 1.0))
+        f = Facet([R3(0.0, 0.0, 0.0), R3(2.0, 0.0, 0.0),
+                   R3(2.0, 2.0, 0.0), R3(0.0, 2.0, 0.0)])
+        s.shadow(f)
+        assert s.edge_visibility()
+
+    # Ребро полностью/частично невидимо
+    def test_edge_visibility_02(self):
+        s = Edge(R3(-5.0, -5.0, -1.0), R3(3.0, 3.0, -1.0))
+        f = Facet([R3(0.0, 0.0, 0.0), R3(2.0, 0.0, 0.0),
+                   R3(2.0, 2.0, 0.0), R3(0.0, 2.0, 0.0)])
+        s.shadow(f)
+        assert not s.edge_visibility()
+    
+    # Ребро полностью/частично невидимо
+    def test_edge_visibility_03(self):
+        s = Edge(R3(0.0, 0.0, -1.0), R3(1.0, 1.0, -1.0))
+        f = Facet([R3(0.0, 0.0, 0.0), R3(2.0, 0.0, 0.0),
+                   R3(2.0, 2.0, 0.0), R3(0.0, 2.0, 0.0)])
+        s.shadow(f)
+        assert not s.edge_visibility()

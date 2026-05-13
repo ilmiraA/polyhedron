@@ -3,6 +3,7 @@ from functools import reduce
 from operator import add
 from common.r3 import R3
 from common.tk_drawer import TkDrawer
+from math import sqrt
 
 
 class Segment:
@@ -79,6 +80,12 @@ class Edge:
             return Segment(Edge.SBEG, Edge.SFIN)
         x = - f0 / (f1 - f0)
         return Segment(Edge.SBEG, x) if f0 < 0.0 else Segment(x, Edge.SFIN)
+    
+    # Видимость ребра
+    def edge_visibility(self):
+        return (len(self.gaps) == 1 and
+                self.gaps[0].beg == Edge.SBEG and
+                self.gaps[0].fin == Edge.SFIN)
 
 
 class Facet:
@@ -116,6 +123,20 @@ class Facet:
         return sum(self.vertexes, R3(0.0, 0.0, 0.0)) * \
             (1.0 / len(self.vertexes))
 
+    # Расстояние от центра до х = 2 (строго меньше 1)
+    def dist2(self):
+        return abs(self.center()[0] - 2) < 1
+
+    # Периметр проекции грани на Oxy
+    def perimeter(self):
+        p = 0.0
+        for i in range(len(self.vertexes)):
+            x0 = self.vertexes[i][0]
+            y0 = self.vertexes[i][1]
+            x1 = self.vertexes[(i + 1) % len(self.vertexes)][0]
+            y1 = self.vertexes[(i + 1) % len(self.vertexes)][1]
+            p += sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
+        return p
 
 class Polyedr:
     """ Полиэдр """
@@ -159,6 +180,22 @@ class Polyedr:
                     # задание самой грани
                     self.facets.append(Facet(vertexes))
 
+    # Полностью видимая грань
+    def facet_visibility(self, facet):
+        for i in range(len(facet.vertexes)):
+            Beg = facet.vertexes[i]
+            Fin = facet.vertexes[(i + 1) % len(facet.vertexes)]
+            visi = False
+            for e in self.edges:
+                if (e.beg == Beg and e.fin == Fin) or (e.fin == Beg and e.beg == Fin):
+                    visi = True
+                    if not(e.edge_visibility()):
+                        return False
+                    break
+            if not(visi):
+                return False
+        return True
+
     # Метод изображения полиэдра
     def draw(self, tk):
         tk.clean()
@@ -167,3 +204,8 @@ class Polyedr:
                 e.shadow(f)
             for s in e.gaps:
                 tk.draw_line(e.r3(s.beg), e.r3(s.fin))
+        perimeter = 0.0
+        for f in self.facets:
+            if self.facet_visibility(f) and f.dist2():
+                perimeter += f.perimeter()
+        print(f'Периметр полностью видимых граней, удовл. условию: {perimeter}')

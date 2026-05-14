@@ -69,32 +69,32 @@ class TestVoid(unittest.TestCase):
     # Центр треугольника
     def test_center02(self):
         f = Facet([R3(0.0, 0.0, 0.0), R3(3.0, 0.0, 0.0), R3(0.0, 3.0, 0.0)])
-        assert f.center().approx((R3(1.0, 1.0, 0.0)))
+        self.assertEqual(R3ApproxMatcher(f.center()), (R3(1.0, 1.0, 0.0)))
 
     # Расстояние от центра до x = 2 меньше 1
     def test_dist2_01(self):
         f = Facet([R3(1.0, 0.0, 0.0), R3(2.0, 0.0, 0.0),
                    R3(2.0, 1.0, 0.0), R3(1.0, 1.0, 0.0)])
-        assert f.dist2() == True
+        assert f.dist2()
 
     # Расстояние от центра до x = 2 равно 1
     def test_dist2_01(self):
         f = Facet([R3(0.0, 0.0, 0.0), R3(2.0, 0.0, 0.0),
                    R3(2.0, 2.0, 0.0), R3(0.0, 2.0, 0.0)])
-        assert f.dist2() == False
+        assert not (f.dist2())
 
     # Расстояние от центра до x = 2 больше 1
     def test_dist2_01(self):
         f = Facet([R3(0.0, 0.0, 0.0), R3(-3.0, 0.0, 0.0), R3(0.0, 3.0, 0.0)])
-        assert f.dist2() == False
+        assert not (f.dist2())
 
     # Периметр грани
     def test_perimiter_01(self):
         f = Facet([R3(0.0, 0.0, 0.0), R3(2.0, 0.0, 0.0),
                    R3(2.0, 2.0, 0.0), R3(0.0, 2.0, 0.0)])
-        assert f.perimeter().aapprox(8.0)
+        self.assertAlmostEqual(f.perimeter(), 8.0)
 
     # Периметр грани
-    def test_perimiter_01(self):
+    def test_perimiter_02(self):
         f = Facet([R3(0.0, 0.0, 0.0), R3(3.0, 0.0, 0.0), R3(0.0, 3.0, 0.0)])
-        assert f.perimeter().aapprox(6.0 + 3.0 * sqrt(2))
+        self.assertAlmostEqual(f.perimeter(), 6.0 + 3.0 * sqrt(2))

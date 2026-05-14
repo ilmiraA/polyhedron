@@ -110,7 +110,7 @@ class TestVoid(unittest.TestCase):
                    R3(2.0, 2.0, 0.0), R3(0.0, 2.0, 0.0)])
         s.shadow(f)
         assert not s.edge_visibility()
-    
+
     # Ребро полностью/частично невидимо
     def test_edge_visibility_03(self):
         s = Edge(R3(0.0, 0.0, -1.0), R3(1.0, 1.0, -1.0))

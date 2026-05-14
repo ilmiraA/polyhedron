@@ -80,7 +80,7 @@ class Edge:
             return Segment(Edge.SBEG, Edge.SFIN)
         x = - f0 / (f1 - f0)
         return Segment(Edge.SBEG, x) if f0 < 0.0 else Segment(x, Edge.SFIN)
-    
+
     # Видимость ребра
     def edge_visibility(self):
         return (len(self.gaps) == 1 and
@@ -125,18 +125,19 @@ class Facet:
 
     # Расстояние от центра до х = 2 (строго меньше 1)
     def dist2(self):
-        return abs(self.center()[0] - 2) < 1
+        return abs(self.center().x - 2) < 1
 
     # Периметр проекции грани на Oxy
     def perimeter(self):
         p = 0.0
         for i in range(len(self.vertexes)):
-            x0 = self.vertexes[i][0]
-            y0 = self.vertexes[i][1]
-            x1 = self.vertexes[(i + 1) % len(self.vertexes)][0]
-            y1 = self.vertexes[(i + 1) % len(self.vertexes)][1]
+            x0 = self.vertexes[i].x
+            y0 = self.vertexes[i].y
+            x1 = self.vertexes[(i + 1) % len(self.vertexes)].x
+            y1 = self.vertexes[(i + 1) % len(self.vertexes)].y
             p += sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
         return p
+
 
 class Polyedr:
     """ Полиэдр """
@@ -187,12 +188,13 @@ class Polyedr:
             Fin = facet.vertexes[(i + 1) % len(facet.vertexes)]
             visi = False
             for e in self.edges:
-                if (e.beg == Beg and e.fin == Fin) or (e.fin == Beg and e.beg == Fin):
+                if (e.beg == Beg and e.fin == Fin) or \
+                        (e.fin == Beg and e.beg == Fin):
                     visi = True
-                    if not(e.edge_visibility()):
+                    if not (e.edge_visibility()):
                         return False
                     break
-            if not(visi):
+            if not (visi):
                 return False
         return True
 
@@ -208,4 +210,5 @@ class Polyedr:
         for f in self.facets:
             if self.facet_visibility(f) and f.dist2():
                 perimeter += f.perimeter()
-        print(f'Периметр полностью видимых граней, удовл. условию: {perimeter}')
+        print(f'Периметр полностью видимых граней, удовл. условию: \
+              {perimeter}')

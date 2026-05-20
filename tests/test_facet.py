@@ -86,7 +86,8 @@ class TestVoid(unittest.TestCase):
     # Расстояние от центра до x = 2 больше 1
     def test_dist2_01(self):
         f = Facet([R3(0.0, 0.0, 0.0), R3(-3.0, 0.0, 0.0), R3(0.0, 3.0, 0.0)])
-        assert not (f.dist2())
+        two = R3(2.0, 0.0, 0.0)
+        assert not (f.dist2(two))
 
     # Периметр грани
     def test_perimiter_01(self):

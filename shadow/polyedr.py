@@ -84,26 +84,38 @@ class Edge:
     # Видимость ребра
     def edge_visibility(self):
         return (len(self.gaps) == 1 and
-                self.gaps[0].beg == Edge.SBEG and
-                self.gaps[0].fin == Edge.SFIN)
+                self.gaps[0].beg <= Edge.SBEG + 1e-9 and
+                self.gaps[0].fin >= Edge.SFIN - 1e-9)
 
 
 class Facet:
     """ Грань полиэдра """
     # Параметры конструктора: список вершин
 
-    def __init__(self, vertexes):
+    def __init__(self, vertexes, liteverexes):
         self.vertexes = vertexes
+        self.liteverexes = liteverexes
 
     # «Вертикальна» ли грань?
     def is_vertical(self):
-        return self.h_normal().dot(Polyedr.V) == 0.0
+        return self.h_normal().dot(Polyedr.V) == 0
+
+    # «Вертикальна» ли грань до изменения точек?
+    def is_vertical1(self):
+        return self.h_normal1().dot(Polyedr.V) == 0
 
     # Нормаль к «горизонтальному» полупространству
     def h_normal(self):
         n = (
             self.vertexes[1] - self.vertexes[0]).cross(
             self.vertexes[2] - self.vertexes[0])
+        return n * (-1.0) if n.dot(Polyedr.V) < 0.0 else n
+
+    # Нормаль к «горизонтальному» полупространству до изменений точек
+    def h_normal1(self):
+        n = (
+            self.liteverexes[1] - self.liteverexes[0]).cross(
+            self.liteverexes[2] - self.liteverexes[0])
         return n * (-1.0) if n.dot(Polyedr.V) < 0.0 else n
 
     # Нормали к «вертикальным» полупространствам, причём k-я из них
@@ -124,18 +136,21 @@ class Facet:
             (1.0 / len(self.vertexes))
 
     # Расстояние от центра до х = 2 (строго меньше 1)
-    def dist2(self):
-        return abs(self.center().x - 2) < 1
+    def dist2(self, t):
+        return abs(self.center().x - t.x) < abs(self.center().x) / 2
 
     # Периметр проекции грани на Oxy
     def perimeter(self):
         p = 0.0
-        for i in range(len(self.vertexes)):
-            x0 = self.vertexes[i].x
-            y0 = self.vertexes[i].y
-            x1 = self.vertexes[(i + 1) % len(self.vertexes)].x
-            y1 = self.vertexes[(i + 1) % len(self.vertexes)].y
-            p += sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2)
+        for i in range(len(self.liteverexes)):
+            v1 = self.liteverexes[i]
+            v2 = self.liteverexes[(i + 1) % len(self.liteverexes)]
+            dx = (v1.x - v2.x)
+            dy = (v1.y - v2.y)
+            p += sqrt(dx*dx + dy*dy)
+        # Проверка на перпендикулярность плоскости Оху
+        if self.is_vertical1():
+            p = p / 2.0
         return p
 
 
@@ -149,6 +164,8 @@ class Polyedr:
 
         # списки вершин, рёбер и граней полиэдра
         self.vertexes, self.edges, self.facets = [], [], []
+        self.litevertexes, self.liteedges = [], []
+        self.c = 0
 
         # список строк файла
         with open(file) as f:
@@ -157,7 +174,7 @@ class Polyedr:
                     # обрабатываем первую строку; buf - вспомогательный массив
                     buf = line.split()
                     # коэффициент гомотетии
-                    c = float(buf.pop(0))
+                    self.c = float(buf.pop(0))
                     # углы Эйлера, определяющие вращение
                     alpha, beta, gamma = (float(x) * pi / 180.0 for x in buf)
                 elif i == 1:
@@ -166,8 +183,9 @@ class Polyedr:
                 elif i < nv + 2:
                     # задание всех вершин полиэдра
                     x, y, z = (float(x) for x in line.split())
+                    self.litevertexes.append(R3(x, y, z))
                     self.vertexes.append(R3(x, y, z).rz(
-                        alpha).ry(beta).rz(gamma) * c)
+                        alpha).ry(beta).rz(gamma) * self.c)
                 else:
                     # вспомогательный массив
                     buf = line.split()
@@ -175,40 +193,45 @@ class Polyedr:
                     size = int(buf.pop(0))
                     # массив вершин этой грани
                     vertexes = list(self.vertexes[int(n) - 1] for n in buf)
+                    litevertexes = list(self.litevertexes[int(n) - 1]
+                                        for n in buf)
                     # задание рёбер грани
                     for n in range(size):
                         self.edges.append(Edge(vertexes[n - 1], vertexes[n]))
-                    # задание самой грани
-                    self.facets.append(Facet(vertexes))
+                    for n in range(size):
+                        self.liteedges.append(Edge(litevertexes[n - 1],
+                                                   litevertexes[n]))
+                    self.facets.append(Facet(vertexes, litevertexes))
+            self.two = R3(2.0, 1.0, 0.0).rz(alpha).ry(beta).rz(gamma) * self.c
 
     # Полностью видимая грань
     def facet_visibility(self, facet):
         for i in range(len(facet.vertexes)):
             Beg = facet.vertexes[i]
             Fin = facet.vertexes[(i + 1) % len(facet.vertexes)]
-            visi = False
+            edge = None
             for e in self.edges:
-                if (e.beg == Beg and e.fin == Fin) or \
-                        (e.fin == Beg and e.beg == Fin):
-                    visi = True
-                    if not (e.edge_visibility()):
-                        return False
+                if (e.beg is Beg and e.fin is Fin) or \
+                        (e.fin is Beg and e.beg is Fin):
+                    edge = e
                     break
-            if not (visi):
+            if edge is None:
+                return False
+            if not edge.edge_visibility():
                 return False
         return True
 
     # Метод изображения полиэдра
-    def draw(self, tk):  # pragma: no cover
+    def draw(self, tk):
         tk.clean()
         for e in self.edges:
             for f in self.facets:
                 e.shadow(f)
             for s in e.gaps:
                 tk.draw_line(e.r3(s.beg), e.r3(s.fin))
-        perimeter = 0.0
+        p = 0.0
         for f in self.facets:
-            if self.facet_visibility(f) and f.dist2():
-                perimeter += f.perimeter()
-        print(f'Периметр полностью видимых граней, удовл. условию: \
-              {perimeter}')
+            if self.facet_visibility(f) and f.dist2(self.two):
+                p += f.perimeter()
+        print(f'Периметр полностью видимых проекций граней, удовл. условию: \
+              {p}')
